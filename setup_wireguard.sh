@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Advanced WireGuard VPN Setup Script
+# Enhanced WireGuard VPN Setup Script
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
@@ -45,6 +45,77 @@ install_wireguard() {
     esac
 }
 
+# Function to set up enhanced security measures
+setup_enhanced_security() {
+    local interface=$1
+    local distro=$2
+
+    # Set up DNS on the server
+    case $distro in
+        debian|ubuntu)
+            apt install -y unbound
+            ;;
+        fedora|centos|rhel)
+            dnf install -y unbound
+            ;;
+    esac
+
+    cat << EOF > /etc/unbound/unbound.conf
+server:
+    verbosity: 1
+    interface: 10.0.0.1
+    port: 53
+    do-ip4: yes
+    do-udp: yes
+    do-tcp: yes
+
+    # Use Google and Cloudflare as fallback
+    forward-zone:
+        name: "."
+        forward-addr: 8.8.8.8
+        forward-addr: 1.1.1.1
+EOF
+    systemctl enable unbound
+    systemctl start unbound
+
+    # Set up iptables rules for kill switch functionality
+    iptables -A INPUT -i wg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    iptables -A FORWARD -i wg0 -j ACCEPT
+    iptables -t nat -A POSTROUTING -o $interface -j MASQUERADE
+    iptables -A INPUT -p udp --dport 51820 -j ACCEPT
+    iptables -A INPUT -s 10.0.0.0/24 -p tcp --dport 53 -j ACCEPT
+    iptables -A INPUT -s 10.0.0.0/24 -p udp --dport 53 -j ACCEPT
+    iptables -P INPUT DROP
+    iptables -P FORWARD DROP
+
+    # Make iptables rules persistent
+    case $distro in
+        debian|ubuntu)
+            apt install -y iptables-persistent
+            netfilter-persistent save
+            ;;
+        fedora|centos|rhel)
+            echo "Please manually save iptables rules for Fedora/CentOS/RHEL"
+            ;;
+    esac
+
+    # Enable IP forwarding
+    echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/99-sysctl.conf
+    sysctl -p
+
+    # Set up fail2ban to protect SSH
+    case $distro in
+        debian|ubuntu)
+            apt install -y fail2ban
+            ;;
+        fedora|centos|rhel)
+            dnf install -y fail2ban
+            ;;
+    esac
+    systemctl enable fail2ban
+    systemctl start fail2ban
+}
+
 # Main setup function
 setup_wireguard() {
     local interface=$(detect_interface)
@@ -72,9 +143,8 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 # Client configuration will be added here
 EOF
 
-    # Enable IP forwarding
-    echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/99-sysctl.conf
-    sysctl -p
+    # Set up enhanced security measures
+    setup_enhanced_security $interface $distro
 
     # Configure firewall based on distribution
     case $distro in
@@ -102,7 +172,7 @@ EOF
 [Interface]
 PrivateKey = $client_private_key
 Address = 10.0.0.2/32
-DNS = 1.1.1.1
+DNS = 10.0.0.1
 
 [Peer]
 PublicKey = $server_public_key
@@ -120,9 +190,10 @@ EOF
     # Restart WireGuard to apply changes
     systemctl restart wg-quick@wg0
 
-    echo "WireGuard setup complete!"
+    echo "Enhanced WireGuard setup complete!"
     echo "Client configuration saved in client_config.conf"
     echo "Use this configuration file on your client devices"
+    echo "Please review the README for important security information and client setup instructions."
 }
 
 # Run the setup
