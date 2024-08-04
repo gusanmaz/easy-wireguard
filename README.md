@@ -248,7 +248,21 @@ Remember, while a personal VPN provides many benefits, it's not a silver bullet 
 
 ## Contributing
 
-Contributions to EasyWireGuard VPN are welcome! Please feel free to submit pull requests, create issues or spread the word.
+We welcome contributions to improve EasyWireGuard VPN! If you encounter any bugs, have feature requests, or want to contribute code, please feel free to engage with the project:
+
+- **Reporting Bugs**: If you find a bug, please open an issue in our GitHub repository. Provide as much detail as possible, including your operating system, the version of the script you're using, and steps to reproduce the issue.
+
+- **Feature Requests**: Have an idea to improve the project? Open an issue and tag it as a feature request.
+
+- **Pull Requests**: If you've developed a bug fix or new feature, feel free to submit a pull request. Please make sure to describe your changes and the rationale behind them.
+
+Your feedback and contributions are valuable in making this project better for everyone!
+
+## Code Explanation
+
+For those interested in understanding the inner workings of the EasyWireGuard VPN setup script, we've provided a detailed explanation of the code. This can be helpful for those looking to learn from, modify, or extend the functionality of the script.
+
+You can find the code explanation in the [CODE_EXPLANATION.md](CODE_EXPLANATION.md) file in this repository. It breaks down each section of the script, explaining the purpose and functionality of different components.
 
 ## Disclaimer and Responsibility
 
